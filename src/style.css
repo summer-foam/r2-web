@@ -1,0 +1,40 @@
+/* ========================================================================
+   R2 Web — Modern CSS
+   Features: CSS nesting, light-dark(), color-mix(), @starting-style,
+             Popover API, range media queries, text-wrap: balance
+   ======================================================================== */
+
+@layer reset, tokens, base, layout, components, utilities, animations;
+
+@import './css/reset.css';
+@import './css/tokens.css';
+@import './css/base.css';
+@import './css/layout.css';
+@import './css/components.css';
+@import './css/utilities.css';
+@import './css/animations.css';
+
+/* ========================================================================
+   Global Tooltip — Outside layers for maximum priority
+   ======================================================================== */
+
+.tooltip {
+  position: fixed !important;
+  z-index: var(--z-tooltip) !important;
+  pointer-events: none;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+
+.tooltip.visible {
+  opacity: 1 !important;
+}

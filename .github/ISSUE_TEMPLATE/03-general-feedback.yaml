@@ -1,0 +1,53 @@
+name: '💬 其他反馈'
+description: '其他类型的反馈、建议或讨论'
+title: '【其他反馈】'
+labels: ['feedback']
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您的反馈！这里是其他类型反馈的通用模板，包括但不限于：文档问题、使用建议、项目讨论等。
+
+  - type: dropdown
+    id: feedback-type
+    attributes:
+      label: '反馈类型'
+      description: '请选择您的反馈类型'
+      options:
+        - '使用疑问'
+        - '文档问题'
+        - '配置问题'
+        - '部署相关'
+        - '项目讨论'
+        - '其他'
+    validations:
+      required: true
+
+  - type: textarea
+    id: feedback-content
+    attributes:
+      label: '反馈内容'
+      description: '请详细描述您的反馈'
+      placeholder: '请详细描述您的想法、建议或问题...'
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: '确认'
+      description: '请确认您已阅读相关内容'
+      options:
+        - label: '我已搜索过现有的 issue，确认没有重复'
+          required: true
+        - label: '我理解这是一个开源项目，维护者会根据情况处理反馈'
+          required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: '其他信息（可选）'
+      description: '任何其他您认为有用的信息，如相关链接、截图说明等'
+    validations:
+      required: false

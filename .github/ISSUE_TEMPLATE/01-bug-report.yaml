@@ -1,0 +1,90 @@
+name: '🐛 问题反馈'
+description: '报告项目中遇到的问题或错误'
+title: '【问题反馈】'
+labels: ['bug']
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您的反馈！请详细描述您遇到的问题，这将帮助我们更快定位和解决问题。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: '问题描述'
+      description: '请详细描述您遇到的问题'
+      placeholder: '请详细描述问题的现象和影响...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: '复现步骤（可选）'
+      description: '请提供复现问题的具体步骤'
+      placeholder: |
+        1. 访问...
+        2. 点击...
+        3. 输入...
+        4. 看到问题...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: '期望行为（可选）'
+      description: '描述您期望的正常行为'
+      placeholder: '期望应该...'
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: '版本信息（可选）'
+      description: '可以在设置页面的关于部分找到版本信息'
+      placeholder: '例如：v1.4.0'
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: '错误日志（可选）'
+      description: '如有错误日志，请粘贴在此'
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: '环境信息（可选）'
+      description: '请提供相关的环境信息'
+      placeholder: |
+        - 操作系统：
+        - 浏览器/客户端：
+        - 其他相关信息：
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: '确认'
+      description: '请确认您已阅读相关内容'
+      options:
+        - label: '我已搜索过现有的 issue，确认没有重复'
+          required: true
+        - label: '我理解这是一个开源项目，维护者会根据情况处理反馈'
+          required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: '其他信息（可选）'
+      description: '任何其他您认为有用的信息，如相关链接、截图说明等'
+    validations:
+      required: false

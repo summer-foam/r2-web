@@ -1,0 +1,67 @@
+{
+  "name": "r2-web",
+  "private": true,
+  "version": "1.12.3",
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "author": "Viki <hi@viki.moe> (https://github.com/vikiboss)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npx serve ./src -p 5500",
+    "format": "prettier --write ./src/**/*.{ts,tsx,js,jsx,json,css,md,html} --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit --project jsconfig.json",
+    "release": "bumpp"
+  },
+  "prettier": {
+    "semi": false,
+    "printWidth": 120,
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "changelogithub": {
+    "types": {
+      "feat": {
+        "title": "🚀 新功能"
+      },
+      "fix": {
+        "title": "🐞 问题修复"
+      },
+      "perf": {
+        "title": "🏎 性能优化"
+      },
+      "chore": {
+        "title": "🧹 杂项"
+      },
+      "style": {
+        "title": "🎨 样式"
+      },
+      "refactor": {
+        "title": "🔨 重构"
+      },
+      "docs": {
+        "title": "📚 文档"
+      },
+      "ci": {
+        "title": "⚙️ CI/CD"
+      }
+    }
+  },
+  "dependencies": {
+    "@jsquash/avif": "^2.1.1",
+    "@jsquash/jpeg": "^1.6.0",
+    "@jsquash/oxipng": "^2.3.0",
+    "@jsquash/webp": "^1.5.0",
+    "aws4fetch": "^1.0.20",
+    "dayjs": "^1.11.19",
+    "filesize": "^11.0.13",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "bumpp": "^10.4.1",
+    "changelogithub": "^14.0.0",
+    "prettier": "^3.8.1",
+    "serve": "^14.2.6",
+    "typescript": "^5.9.3"
+  }
+}

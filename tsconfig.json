@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "strictNullChecks": false, // TODO: 完善类型定义后开启
+    "target": "esnext",
+    "noEmit": true,
+    "module": "esnext",
+    "allowJs": true,
+    "moduleResolution": "bundler"
+  },
+  "include": ["src/**/*.js", "./global.d.ts", "bump.config.ts", "changelog.config.ts"]
+}

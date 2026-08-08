@@ -1,0 +1,1532 @@
+<!doctype html>
+<html lang="zh" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://esm.sh 'unsafe-inline'; connect-src 'self' https:; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; worker-src blob:; frame-src 'none'; object-src 'none';"
+    />
+    <meta name="description" content="轻盈优雅的 Web 原生 Cloudflare R2 文件管理器，一切皆在浏览器中完成。" />
+    <title>R2 Web</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" sizes="any" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Apple iOS -->
+    <link rel="apple-touch-icon" href="./r2-web.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="R2 Web" />
+
+    <!-- Windows Tiles -->
+    <meta name="msapplication-TileColor" content="#F6821F" />
+    <meta name="msapplication-TileImage" content="./r2-web.png" />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#F6821F" />
+
+    <link rel="preconnect" href="https://esm.sh" />
+    <link rel="preconnect" href="https://r2.cloudflarestorage.com" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@jsquash/avif": "https://esm.sh/@jsquash/avif@2.1.1",
+          "@jsquash/jpeg": "https://esm.sh/@jsquash/jpeg@1.6.0",
+          "@jsquash/oxipng": "https://esm.sh/@jsquash/oxipng@2.3.0",
+          "@jsquash/webp": "https://esm.sh/@jsquash/webp@1.5.0",
+          "aws4fetch": "https://esm.sh/aws4fetch@1.0.20",
+          "dayjs": "https://esm.sh/dayjs@1.11.19",
+          "filesize": "https://esm.sh/filesize@11.0.13",
+          "qrcode": "https://esm.sh/qrcode@1.5.4"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+  </head>
+  <body>
+    <!-- Config Dialog -->
+    <dialog id="config-dialog">
+      <div id="config-form" class="dialog-panel">
+        <div class="dialog-header">
+          <h2 id="config-title">R2 Web</h2>
+          <div class="dialog-header-actions">
+            <button type="button" class="icon-btn sm" id="config-dialog-close" data-tooltip="关闭">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="dialog-body">
+          <!-- Tab Navigation -->
+          <div class="config-tabs" role="tablist">
+            <button type="button" class="config-tab-btn" role="tab" aria-selected="true" data-tab="preferences">
+              <span id="tab-preferences">偏好设置</span>
+            </button>
+            <button type="button" class="config-tab-btn" role="tab" data-tab="r2">
+              <span id="tab-r2">R2 设置</span>
+            </button>
+            <button type="button" class="config-tab-btn" role="tab" data-tab="upload">
+              <span id="tab-upload">上传设置</span>
+            </button>
+            <button type="button" class="config-tab-btn" role="tab" data-tab="compression">
+              <span id="tab-compression">压缩设置</span>
+            </button>
+            <button type="button" class="config-tab-btn" role="tab" data-tab="about">
+              <span id="tab-about">关于</span>
+            </button>
+          </div>
+
+          <!-- Tab Panels Container -->
+          <div class="config-tab-panels">
+            <!-- Tab 1: Preferences -->
+            <form class="config-tab-panel" role="tabpanel" data-panel="preferences">
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-theme" id="lbl-theme">主题</label>
+                    <button type="button" class="help-icon" id="help-theme">?</button>
+                  </div>
+                  <select id="cfg-theme" name="theme">
+                    <option value="light">浅色</option>
+                    <option value="dark">深色</option>
+                    <option value="auto">跟随系统</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-language" id="lbl-language">界面语言</label>
+                    <button type="button" class="help-icon" id="help-language">?</button>
+                  </div>
+                  <select id="cfg-language" name="language">
+                    <option value="zh">简体中文</option>
+                    <option value="zh_TW">繁體中文</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-density" id="lbl-density">紧凑度</label>
+                    <button type="button" class="help-icon" id="help-density">?</button>
+                  </div>
+                  <select id="cfg-density" name="density">
+                    <option value="compact">紧凑</option>
+                    <option value="normal" selected>标准</option>
+                    <option value="loose">宽松</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+
+            <!-- Tab 2: R2 Config -->
+            <form class="config-tab-panel" role="tabpanel" data-panel="r2" hidden>
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-account-id" id="lbl-account-id">账户 ID（Account ID）</label>
+                    <button type="button" class="help-icon" id="help-account-id">?</button>
+                  </div>
+                  <input id="cfg-account-id" name="accountId" type="text" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-access-key" id="lbl-access-key"> 访问密钥 ID（Access Key ID） </label>
+                    <button type="button" class="help-icon" id="help-access-key">?</button>
+                  </div>
+                  <input id="cfg-access-key" name="accessKeyId" type="text" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-secret-key" id="lbl-secret-key"> 秘密访问密钥（Secret Access Key） </label>
+                    <button type="button" class="help-icon" id="help-secret-key">?</button>
+                  </div>
+                  <input id="cfg-secret-key" name="secretAccessKey" type="password" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-bucket" id="lbl-bucket">存储桶名称（Bucket Name）</label>
+                    <button type="button" class="help-icon" id="help-bucket">?</button>
+                  </div>
+                  <input id="cfg-bucket" name="bucket" type="text" required autocomplete="off" />
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-custom-domain" id="lbl-custom-domain"> 自定义域名（Custom Domain） </label>
+                    <button type="button" class="help-icon" id="help-custom-domain">?</button>
+                  </div>
+                  <input
+                    id="cfg-custom-domain"
+                    name="customDomain"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="https://cdn.example.com"
+                  />
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-bucket-access" id="lbl-bucket-access">存储桶可见性（Bucket Visibility）</label>
+                    <button type="button" class="help-icon" id="help-bucket-access">?</button>
+                  </div>
+                  <select id="cfg-bucket-access" class="select">
+                    <option value="public">公开（Public）</option>
+                    <option value="private">私有（Private）</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+
+            <!-- Tab 3: Upload -->
+            <form class="config-tab-panel" role="tabpanel" data-panel="upload" hidden>
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-filename-tpl" id="lbl-filename-tpl">文件名模板</label>
+                    <button type="button" class="help-icon" id="help-filename-tpl">?</button>
+                  </div>
+                  <input
+                    id="cfg-filename-tpl"
+                    name="filenameTpl"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="[name]_[hash:6].[ext]"
+                  />
+                  <small
+                    class="text-secondary"
+                    id="filename-tpl-hint"
+                    style="
+                      margin-top: 6px;
+                      display: block;
+                      line-height: 1.5;
+                      opacity: 0.85;
+                      white-space: pre-line;
+                      font-family: var(--font-mono);
+                      font-size: 11px;
+                    "
+                  >
+                    例一：[name]_[hash:6].[ext] 结果：photo_a1b2c3.jpg 例二：[date:YYYY-MM-DD]_[name].[ext]
+                    结果：2024-03-15_photo.jpg 例三：[date:YYYY/MM]/[name].[ext]
+                    结果：2024/03/photo.jpg（当前目录的子目录）
+                  </small>
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-filename-tpl-scope" id="lbl-filename-tpl-scope">生效范围</label>
+                    <button type="button" class="help-icon" id="help-filename-tpl-scope">?</button>
+                  </div>
+                  <select id="cfg-filename-tpl-scope" name="filenameTplScope">
+                    <option value="images">仅图片</option>
+                    <option value="all">全部文件</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-upload-concurrency" id="lbl-upload-concurrency">并发上传数</label>
+                  </div>
+                  <select id="cfg-upload-concurrency" name="uploadConcurrency">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                  </select>
+                </div>
+              </div>
+            </form>
+
+            <!-- Tab 4: Compression -->
+            <form class="config-tab-panel" role="tabpanel" data-panel="compression" hidden>
+              <div class="config-section">
+                <div class="field">
+                  <div class="field-label">
+                    <label for="cfg-compress-mode" id="lbl-compress-mode">模式</label>
+                    <button type="button" class="help-icon" id="help-compress-mode">?</button>
+                  </div>
+                  <select id="cfg-compress-mode" name="compressMode">
+                    <option value="none">暂不开启</option>
+                    <option value="local" selected>本地压缩</option>
+                    <option value="tinify">Tinify 服务</option>
+                  </select>
+                </div>
+
+                <div id="compress-local-options">
+                  <div class="field">
+                    <div class="field-label">
+                      <label for="cfg-compress-level" id="lbl-compress-level">压缩程度</label>
+                      <button type="button" class="help-icon" id="help-compress-level">?</button>
+                    </div>
+                    <select id="cfg-compress-level" name="compressLevel">
+                      <option value="balanced" selected>平衡模式</option>
+                      <option value="extreme">极致压缩</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div id="compress-tinify-options" hidden>
+                  <div class="field">
+                    <div class="field-label">
+                      <label for="cfg-tinify-key" id="lbl-tinify-key">Tinify API Key</label>
+                      <button type="button" class="help-icon" id="help-tinify-key">?</button>
+                    </div>
+                    <input
+                      id="cfg-tinify-key"
+                      name="tinifyKey"
+                      type="password"
+                      autocomplete="off"
+                      placeholder="来自 tinify.com 的 Key"
+                    />
+                    <small class="field-hint">
+                      <span id="tinify-key-hint-text">还没有 API Key？</span>
+                      <a
+                        href="https://tinify.com/developers"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        id="tinify-key-link"
+                      >
+                        前往获取
+                      </a>
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <!-- Tab 5: About -->
+            <div class="config-tab-panel" role="tabpanel" data-panel="about" hidden>
+              <div class="about-section">
+                <div class="about-header">
+                  <img src="favicon.ico" alt="R2 Web" class="about-icon" />
+                  <h2 class="about-title">R2 Web</h2>
+                  <div class="about-meta">
+                    <div class="about-version" id="about-version">v1.0.0</div>
+                  </div>
+                </div>
+
+                <p class="about-desc" id="about-description">轻盈优雅的 Web 原生 Cloudflare R2 文件管理器</p>
+
+                <div class="about-updated" id="about-updated">Updated: -</div>
+
+                <div class="about-links">
+                  <a
+                    href="https://github.com/vikiboss/r2-web"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="about-link"
+                  >
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.21.69.82.57A12 12 0 0 0 12 .3"
+                      />
+                    </svg>
+                    <span id="about-github">GitHub</span>
+                  </a>
+                  <a
+                    href="https://github.com/vikiboss/r2-web/releases"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="about-link"
+                  >
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        fill-rule="evenodd"
+                        d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H6zm0 2h12v16H6V4zm2 3a1 1 0 0 0 0 2h8a1 1 0 1 0 0-2H8zm0 4a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2H8zm0 4a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H8z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                    <span id="about-changelog">更新日志</span>
+                  </a>
+                  <a href="https://qm.qq.com/q/e47kAlbdsc" target="_blank" rel="noopener noreferrer" class="about-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M5 18v3.766l1.515-.909L11.277 18H16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2H4c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2zM4 8h12v8h-5.277L7 18.234V16H4z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M20 2H8c-1.103 0-2 .897-2 2h12c1.103 0 2 .897 2 2v8c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2"
+                      />
+                    </svg>
+                    <span id="about-qq-group">反馈 QQ 群</span>
+                  </a>
+                </div>
+
+                <div class="about-license">
+                  <span id="about-license-label">开源协议:</span>
+                  <strong>MIT License</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button type="button" class="btn secondary" id="config-cancel">取消</button>
+          <button type="button" class="btn primary" id="config-submit">保存</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Hero (shown when not connected) -->
+    <section id="hero" hidden>
+      <div class="hero-inner">
+        <div class="hero-badge">
+          <img src="favicon.ico" alt="" class="hero-badge-icon" />
+        </div>
+        <h1 class="hero-title" id="hero-title">R2 Manager</h1>
+        <p class="hero-desc" id="hero-desc">纯客户端的 Cloudflare R2 存储桶文件管理器。</p>
+        <div class="hero-actions">
+          <button type="button" class="btn primary" id="hero-connect-btn">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            <span id="hero-connect-text">连接到 R2</span>
+          </button>
+          <a
+            href="https://github.com/vikiboss/r2-web"
+            target="_blank"
+            rel="noopener"
+            class="btn secondary"
+            id="hero-github-btn"
+          >
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.21.69.82.57A12 12 0 0 0 12 .3"
+              />
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+        <div class="hero-features">
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              />
+            </svg>
+            <span id="hero-f1">简单优雅高效</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span id="hero-f2">纯本地客户端</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+            </svg>
+            <span id="hero-f3">目录文件管理</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span id="hero-f4">常见类型预览</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span id="hero-f5">拖拽粘贴上传</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="4 14 10 14 10 20" />
+              <polyline points="20 10 14 10 14 4" />
+              <line x1="14" y1="10" x2="21" y2="3" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            <span id="hero-f6">上传自动压缩</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            <span id="hero-f7">一键复制外链</span>
+          </div>
+          <div class="hero-feature">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            <span id="hero-f8">一键分享配置</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- App Shell -->
+    <div id="app" hidden>
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="flex items-center" style="gap: 8px">
+          <img src="favicon.ico" alt="" class="topbar-logo" />
+          <h1 class="topbar-title">R2 Web</h1>
+        </div>
+        <div class="flex items-center" style="gap: 4px">
+          <button type="button" class="icon-btn" id="share-btn" data-tooltip="分享配置">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" id="settings-btn" data-tooltip="设置">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              />
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" id="logout-btn" data-tooltip="安全退出">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="flex items-center" style="gap: 4px">
+          <nav aria-label="Breadcrumb">
+            <ol class="breadcrumb" id="breadcrumb">
+              <li><button type="button" class="breadcrumb-btn" data-prefix="">根目录</button></li>
+            </ol>
+          </nav>
+          <button type="button" class="icon-btn sm" id="refresh-btn" data-tooltip="刷新">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+          <small class="text-secondary" id="item-count" hidden></small>
+        </div>
+        <div class="flex items-center" style="gap: 8px">
+          <!-- Batch Action Bar -->
+          <div class="batch-action-bar" id="batch-action-bar" hidden>
+            <span class="batch-count" id="batch-count"></span>
+            <div class="batch-actions">
+              <button type="button" class="btn secondary sm" id="batch-select-all-btn">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <polyline points="9 11 12 14 22 4" />
+                </svg>
+                <span id="batch-select-all-text"></span>
+              </button>
+              <button type="button" class="btn secondary sm" id="batch-move-btn">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="15 10 20 15 15 20" />
+                  <path d="M4 4v7a4 4 0 0 0 4 4h12" />
+                </svg>
+                <span id="batch-move-text"></span>
+              </button>
+              <button type="button" class="btn secondary sm" id="batch-copy-btn">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                <span id="batch-copy-text"></span>
+              </button>
+              <button type="button" class="btn danger sm" id="batch-delete-btn">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span id="batch-delete-text"></span>
+              </button>
+              <button type="button" class="icon-btn sm" id="batch-cancel-btn">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button type="button" class="btn secondary sm" id="batch-toggle-btn" aria-pressed="false">
+            <!-- 进入多选模式图标（双对勾） -->
+            <svg
+              id="batch-toggle-icon-enter"
+              class="icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 16 16"
+            >
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-linejoin="round"
+                d="m11.5 5.5l-3 3L7 7M2.5 4v9.5H12m-7.5-11h9v9h-9z"
+                stroke-width="1"
+              />
+            </svg>
+            <!-- 退出多选模式图标 -->
+            <svg
+              id="batch-toggle-icon-exit"
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            <span id="batch-toggle-text"></span>
+          </button>
+          <div class="btn-group view-toggle" role="group" aria-label="切换视图">
+            <button type="button" class="icon-btn sm" id="view-grid-btn" aria-pressed="true" data-tooltip="网格">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="view-list-btn" aria-pressed="false" data-tooltip="列表">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="btn-group sort-toggle" role="group" aria-label="切换排序">
+            <button type="button" class="icon-btn sm" id="sort-name-btn" aria-pressed="true" data-tooltip="按名称">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256">
+                <path
+                  fill="currentColor"
+                  d="m216.49 79.52l-56-56A12 12 0 0 0 152 20H56a20 20 0 0 0-20 20v176a20 20 0 0 0 20 20h144a20 20 0 0 0 20-20V88a12 12 0 0 0-3.51-8.48M160 57l23 23h-23ZM60 212V44h76v48a12 12 0 0 0 12 12h48v108Zm112-80a12 12 0 0 1-12 12H96a12 12 0 0 1 0-24h64a12 12 0 0 1 12 12m0 40a12 12 0 0 1-12 12H96a12 12 0 0 1 0-24h64a12 12 0 0 1 12 12"
+                />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="sort-date-btn" aria-pressed="false" data-tooltip="按日期">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="sort-size-btn" aria-pressed="false" data-tooltip="按大小">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="btn-group sort-order-toggle" role="group" aria-label="切换排序顺序">
+            <button type="button" class="icon-btn sm" id="sort-asc-btn" aria-pressed="true" data-tooltip="升序">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="17 11 12 6 7 11" />
+                <line x1="12" y1="18" x2="12" y2="6" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="sort-desc-btn" aria-pressed="false" data-tooltip="降序">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="7 13 12 18 17 13" />
+                <line x1="12" y1="6" x2="12" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          <button type="button" class="btn secondary sm" id="new-folder-btn">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              <line x1="12" y1="11" x2="12" y2="17" />
+              <line x1="9" y1="14" x2="15" y2="14" />
+            </svg>
+            <span>新目录</span>
+          </button>
+          <button type="button" class="btn primary sm" id="upload-btn">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>上传</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dropzone Overlay -->
+      <div class="dropzone" id="dropzone" hidden>
+        <div class="dropzone-inner">
+          <svg
+            class="icon icon-xl"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <p id="dropzone-text">拖放文件到此处上传</p>
+        </div>
+      </div>
+
+      <!-- Upload Panel -->
+      <div class="upload-panel" id="upload-panel" hidden>
+        <div class="upload-panel-header">
+          <span id="upload-panel-title">准备中...</span>
+          <button type="button" class="icon-btn sm" id="upload-panel-close" data-tooltip="关闭">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="upload-panel-body" id="upload-panel-body"></div>
+      </div>
+
+      <!-- File Browser -->
+      <main class="file-browser" id="file-browser" data-view="grid" data-density="normal">
+        <div class="file-grid" id="skeleton-grid" hidden>
+          <!-- Skeleton cards are dynamically generated by UIManager.showSkeleton() -->
+        </div>
+        <div class="empty-state" id="empty-state" hidden>
+          <svg
+            class="icon icon-xl text-secondary"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          <p>该目录为空</p>
+          <button type="button" class="btn primary sm" id="empty-upload-btn">
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            上传文件
+          </button>
+          <small class="text-secondary" id="empty-upload-hint">拖放、粘贴或点击上传</small>
+        </div>
+        <div class="file-grid" id="file-grid"></div>
+
+        <div class="load-more" id="load-more" hidden>
+          <button type="button" class="btn secondary sm" id="load-more-btn">加载更多</button>
+        </div>
+        <div class="paste-hint" id="paste-hint">
+          <kbd>Ctrl</kbd>
+          +
+          <kbd>V</kbd>
+          <span id="paste-hint-text">粘贴文件到当前目录</span>
+        </div>
+      </main>
+    </div>
+
+    <!-- Preview Dialog -->
+    <dialog id="preview-dialog">
+      <div class="dialog-panel" tabindex="-1" autofocus>
+        <div class="dialog-header">
+          <span class="truncate" id="preview-filename"></span>
+          <div class="dialog-header-actions">
+            <button type="button" class="icon-btn sm" id="preview-copy-text" data-tooltip="复制文本" hidden>
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+                <line x1="9" y1="16" x2="15" y2="16" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="preview-copy-image" data-tooltip="复制图片" hidden>
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+                <line x1="9" y1="16" x2="15" y2="16" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="preview-copy" data-tooltip="复制链接">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="preview-download" data-tooltip="下载">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+            <button type="button" class="icon-btn sm" id="preview-close" data-tooltip="关闭">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="dialog-body" id="preview-body"></div>
+        <div class="dialog-footer" id="preview-footer"></div>
+      </div>
+    </dialog>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu" popover="manual">
+      <button type="button" class="context-menu-item" data-action="preview">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        <span>预览</span>
+      </button>
+      <button type="button" class="context-menu-item" data-action="download">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        <span>下载</span>
+      </button>
+      <button type="button" class="context-menu-item" id="ctx-share-qr" data-action="shareQr">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <path d="M14 14h3v3h-3z" />
+          <path d="M17 17h4v4h-4z" />
+          <path d="M14 21v-4" />
+        </svg>
+        <span>二维码</span>
+      </button>
+      <div class="context-menu-item has-submenu" id="ctx-copy-link">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+        <span>复制链接</span>
+        <svg
+          class="icon submenu-arrow"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <div class="context-submenu">
+          <button type="button" class="context-menu-item" data-action="copyUrl">
+            <span>URL</span>
+          </button>
+          <button type="button" class="context-menu-item" data-action="copyMarkdown" id="ctx-copy-markdown">
+            <span>Markdown</span>
+          </button>
+          <button type="button" class="context-menu-item" data-action="copyHtml" id="ctx-copy-html">
+            <span>HTML</span>
+          </button>
+          <div class="context-menu-sep" id="ctx-sep-copy-image"></div>
+          <button type="button" class="context-menu-item" data-action="copyImage" id="ctx-copy-image">
+            <span>复制图片</span>
+          </button>
+          <div class="context-menu-sep"></div>
+          <button type="button" class="context-menu-item" data-action="copyPath">
+            <span>文件路径</span>
+          </button>
+          <button type="button" class="context-menu-item" data-action="copyPresigned">
+            <span>Pre-signed URL</span>
+          </button>
+        </div>
+      </div>
+      <div class="context-menu-sep" id="ctx-sep-file"></div>
+      <button type="button" class="context-menu-item" id="ctx-edit-content-type" data-action="editContentType">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+        <span>修改类型</span>
+      </button>
+      <button type="button" class="context-menu-item" data-action="rename">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        <span>重命名</span>
+      </button>
+      <button type="button" class="context-menu-item" data-action="copy">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        <span>复制</span>
+      </button>
+      <button type="button" class="context-menu-item" data-action="move">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 10 20 15 15 20" />
+          <path d="M4 4v7a4 4 0 0 0 4 4h12" />
+        </svg>
+        <span>移动</span>
+      </button>
+      <div class="context-menu-sep"></div>
+      <button type="button" class="context-menu-item danger" data-action="delete">
+        <svg
+          class="icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+        <span>删除</span>
+      </button>
+    </div>
+
+    <!-- Prompt Dialog -->
+    <dialog id="prompt-dialog">
+      <form id="prompt-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="prompt-title">提示</h2>
+        </div>
+        <div class="dialog-body">
+          <p id="prompt-hint" hidden></p>
+          <div class="field">
+            <label for="prompt-input" id="prompt-label">值</label>
+            <input id="prompt-input" type="text" required autocomplete="off" />
+            <p id="prompt-preview" hidden></p>
+            <p id="prompt-error" class="field-error" hidden></p>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="btn secondary" id="prompt-cancel">取消</button>
+          <button type="submit" class="btn primary" id="prompt-ok">确定</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Filename Path Dialog -->
+    <dialog id="filename-path-dialog">
+      <form id="filename-path-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="filename-path-title">路径选择</h2>
+        </div>
+        <div class="dialog-body">
+          <p class="text-secondary" id="filename-path-desc"></p>
+          <div class="choice-list" id="filename-path-options">
+            <label class="choice-item">
+              <input type="radio" name="filenamePathChoice" id="filename-path-choice-template" value="template" />
+              <span id="filename-path-option-template"></span>
+            </label>
+            <label class="choice-item">
+              <input
+                type="radio"
+                name="filenamePathChoice"
+                id="filename-path-choice-prefix-template"
+                value="prefix-template"
+              />
+              <span id="filename-path-option-prefix-template"></span>
+            </label>
+            <label class="choice-item">
+              <input
+                type="radio"
+                name="filenamePathChoice"
+                id="filename-path-choice-prefix-basename"
+                value="prefix-basename"
+              />
+              <span id="filename-path-option-prefix-basename"></span>
+            </label>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="btn secondary" id="filename-path-cancel">取消</button>
+          <button type="submit" class="btn primary" id="filename-path-ok">确认</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Confirm Dialog -->
+    <dialog id="confirm-dialog">
+      <form id="confirm-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="confirm-title">确认</h2>
+        </div>
+        <div class="dialog-body">
+          <p id="confirm-message"></p>
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="btn secondary" id="confirm-cancel">取消</button>
+          <button type="submit" class="btn danger" id="confirm-ok">确认</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Overwrite Confirm Dialog -->
+    <dialog id="overwrite-dialog">
+      <div class="dialog-panel">
+        <div class="dialog-header">
+          <h2 id="overwrite-title">文件已存在</h2>
+        </div>
+        <div class="dialog-body">
+          <p id="overwrite-message"></p>
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="btn secondary" id="overwrite-skip">跳过</button>
+          <button type="button" class="btn secondary" id="overwrite-skip-all">全部跳过</button>
+          <button type="button" class="btn primary" id="overwrite-ok">覆盖</button>
+          <button type="button" class="btn primary" id="overwrite-ok-all">全部覆盖</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- File QR Dialog -->
+    <dialog id="file-qr-dialog">
+      <div class="dialog-panel">
+        <div class="dialog-header">
+          <h2 id="file-qr-title">二维码</h2>
+          <div class="dialog-header-actions">
+            <button type="button" class="icon-btn sm" id="file-qr-close" data-tooltip="关闭">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="dialog-body">
+          <div class="config-transfer-qr">
+            <canvas id="file-qr-canvas" width="168" height="168"></canvas>
+          </div>
+          <p class="text-secondary" id="file-qr-desc"></p>
+          <div class="file-qr-filename" id="file-qr-filename"></div>
+          <div class="field">
+            <input id="file-qr-url" type="text" readonly />
+          </div>
+          <button type="button" class="btn sm secondary" id="file-qr-copy">
+            <span id="file-qr-copy-text">复制链接</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Share Dialog -->
+    <dialog id="share-dialog">
+      <div class="dialog-panel">
+        <div class="dialog-header">
+          <h2 id="share-dialog-title">分享配置</h2>
+          <div class="dialog-header-actions">
+            <button type="button" class="icon-btn sm" id="share-dialog-close" data-tooltip="关闭">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="dialog-body">
+          <p class="share-subtitle" id="share-dialog-subtitle">选择以下任一方式进行多设备迁移</p>
+          <div class="config-transfer-grid">
+            <div class="config-transfer-section config-transfer-section-link">
+              <div class="config-transfer-section-header">
+                <svg
+                  class="config-transfer-section-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                <h3 id="share-link-title">配置链接</h3>
+              </div>
+              <p class="config-transfer-section-desc" id="share-link-desc">复制链接并在其他设备浏览器中打开</p>
+              <div class="share-link-wrapper">
+                <input type="text" id="share-url-input" readonly class="share-url-input" />
+                <button type="button" class="btn primary" id="copy-share-url-btn">
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <span id="copy-share-url-text">复制链接</span>
+                </button>
+              </div>
+              <div class="share-warning">
+                <svg
+                  class="share-warning-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span id="share-warning">链接包含账户凭据，请谨慎分享</span>
+              </div>
+            </div>
+
+            <div class="share-divider">
+              <span class="share-divider-text" id="share-divider-text">或</span>
+            </div>
+
+            <div class="config-transfer-section config-transfer-section-qr">
+              <div class="config-transfer-section-header">
+                <svg
+                  class="config-transfer-section-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <rect x="7" y="7" width="3" height="3" />
+                  <rect x="7" y="14" width="3" height="3" />
+                  <rect x="14" y="7" width="3" height="3" />
+                </svg>
+                <h3 id="share-qr-title">扫描二维码</h3>
+              </div>
+              <p class="config-transfer-section-desc" id="share-qr-desc">使用移动设备相机扫描</p>
+              <div class="share-qr-wrapper">
+                <canvas id="share-qr-canvas"></canvas>
+              </div>
+              <p class="share-qr-hint" id="share-qr-hint">扫码后在浏览器中打开链接</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <!-- Tooltip (global, body-level to avoid overflow clipping) -->
+    <div class="tooltip" id="tooltip" role="tooltip"></div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-input" multiple hidden />
+  </body>
+</html>
