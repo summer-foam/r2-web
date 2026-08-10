@@ -39,7 +39,7 @@ const I18N = {
     pasteFilesConfirmTitle: '粘贴文件上传',
     pasteFilesConfirmMsg: '检测到 {count} 个文件，是否上传到当前目录？',
     uploadWaiting: '等待中...',
-    uploading: '正在上传中 {percent}%（{loaded}/{total}',
+    uploading: '正在上传中 {percent}%（{loaded}/{total}）',
     uploadPreparing: '准备中...',
     uploadProgress: '上传进度',
     root: '根目录',
