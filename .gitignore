@@ -5,3 +5,4 @@ issue.md
 .idea
 .codegraph
 .worktrees/
+/.pnpm-store
