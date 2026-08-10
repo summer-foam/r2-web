@@ -5,22 +5,145 @@ import { ConfigManager } from './config-manager.js'
 
 /** @typedef {{ key: string; isFolder: boolean; size?: number; lastModified?: string }} FileItem */
 
+class R2RequestError extends Error {
+  /**
+   * @param {string} message
+   * @param {{status?: number, code?: string, retryable?: boolean, cause?: unknown}} [options]
+   */
+  constructor(message, { status = 0, code = '', retryable = false, cause } = {}) {
+    super(message, { cause })
+    this.status = status
+    this.code = code
+    this.retryable = retryable
+  }
+}
+
+/** @param {string | number} value */
+const escapeXml = (value) =>
+  String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+
+/** @param {string} value */
+const decodeXml = (value) =>
+  value.replaceAll('&quot;', '"').replaceAll('&gt;', '>').replaceAll('&lt;', '<').replaceAll('&amp;', '&')
+
+/** @param {string} xml @param {string} tag */
+const readXmlTag = (xml, tag) => {
+  const match = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))
+  return decodeXml(match?.[1] ?? '')
+}
+
+/** @param {Response} response */
+const requestError = (response) =>
+  new R2RequestError(`HTTP ${response.status}`, {
+    status: response.status,
+    retryable: response.status === 408 || response.status === 429 || response.status >= 500,
+  })
+
 class R2Client {
   /** @type {AwsClient | null} */
   #client = null
   /** @type {ConfigManager | null} */
   #config = null
+  /** @type {(options: any) => AwsClient} */
+  #clientFactory
+  /** @type {typeof fetch} */
+  #fetchImpl
+
+  /** @param {{clientFactory?: (options: any) => AwsClient, fetchImpl?: typeof fetch}} [options] */
+  constructor({
+    clientFactory = (options) => new AwsClient(options),
+    fetchImpl = (input, init) => fetch(input, init),
+  } = {}) {
+    this.#clientFactory = clientFactory
+    this.#fetchImpl = fetchImpl
+  }
 
   /** @param {ConfigManager} configManager */
   init(configManager) {
     this.#config = configManager
     const cfg = configManager.get()
-    this.#client = new AwsClient({
+    this.#client = this.#clientFactory({
       accessKeyId: cfg.accessKeyId,
       secretAccessKey: cfg.secretAccessKey,
       service: 's3',
       region: 'auto',
     })
+  }
+
+  /** @param {string | URL} url @param {RequestInit} init */
+  async #signedFetchOnce(url, init) {
+    const request = await /** @type {AwsClient} */ (this.#client).sign(url, init)
+    try {
+      return await this.#fetchImpl(request)
+    } catch (cause) {
+      throw new R2RequestError('Network request failed', {
+        code: 'NETWORK_ERROR',
+        retryable: true,
+        cause,
+      })
+    }
+  }
+
+  /** @param {string} key @param {string} contentType */
+  async createMultipartUpload(key, contentType) {
+    const url = new URL(`${/** @type {ConfigManager} */ (this.#config).getBucketUrl()}/${encodeS3Key(key)}`)
+    url.searchParams.set('uploads', '')
+    const res = await this.#signedFetchOnce(url, {
+      method: 'POST',
+      headers: { 'Content-Type': contentType },
+    })
+    if (!res.ok) throw requestError(res)
+    const uploadId = readXmlTag(await res.text(), 'UploadId')
+    if (!uploadId) {
+      throw new R2RequestError('Missing UploadId', { code: 'MULTIPART_UPLOAD_ID_MISSING' })
+    }
+    return uploadId
+  }
+
+  /** @param {string} key @param {string} uploadId @param {number} partNumber @param {Blob} body */
+  async uploadPart(key, uploadId, partNumber, body) {
+    const url = new URL(`${/** @type {ConfigManager} */ (this.#config).getBucketUrl()}/${encodeS3Key(key)}`)
+    url.searchParams.set('partNumber', String(partNumber))
+    url.searchParams.set('uploadId', uploadId)
+    const res = await this.#signedFetchOnce(url, { method: 'PUT', body })
+    if (!res.ok) throw requestError(res)
+    const etag = res.headers.get('etag')
+    if (!etag) {
+      throw new R2RequestError('Multipart ETag is not exposed by CORS', {
+        code: 'MULTIPART_ETAG_MISSING',
+        retryable: false,
+      })
+    }
+    return etag
+  }
+
+  /**
+   * @param {string} key
+   * @param {string} uploadId
+   * @param {{partNumber: number, etag: string}[]} parts
+   */
+  async completeMultipartUpload(key, uploadId, parts) {
+    const url = new URL(`${/** @type {ConfigManager} */ (this.#config).getBucketUrl()}/${encodeS3Key(key)}`)
+    url.searchParams.set('uploadId', uploadId)
+    const body = `<CompleteMultipartUpload>${parts
+      .map(
+        ({ partNumber, etag }) => `<Part><PartNumber>${partNumber}</PartNumber><ETag>${escapeXml(etag)}</ETag></Part>`,
+      )
+      .join('')}</CompleteMultipartUpload>`
+    const res = await this.#signedFetchOnce(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/xml' },
+      body,
+    })
+    if (!res.ok) throw requestError(res)
+  }
+
+  /** @param {string} key @param {string} uploadId */
+  async abortMultipartUpload(key, uploadId) {
+    const url = new URL(`${/** @type {ConfigManager} */ (this.#config).getBucketUrl()}/${encodeS3Key(key)}`)
+    url.searchParams.set('uploadId', uploadId)
+    const res = await this.#signedFetchOnce(url, { method: 'DELETE' })
+    if (!res.ok) throw requestError(res)
   }
 
   /** @param {string} [prefix] @param {string} [continuationToken] */
