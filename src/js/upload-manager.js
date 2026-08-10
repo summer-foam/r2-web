@@ -6,7 +6,6 @@ import dayjs from 'dayjs'
 import { filesize } from 'filesize'
 import {
   COMPRESSIBLE_IMAGE_RE,
-  IMAGE_RE,
   MAX_UPLOAD_SIZE,
   MULTIPART_CONCURRENCY,
   MULTIPART_MAX_RETRIES,
@@ -27,6 +26,7 @@ import {
   extractFileName,
   getMimeType,
   isFilenameHashTooLarge,
+  shouldApplyFilenameTemplate,
 } from './utils.js'
 
 /** @typedef {{ accountId?: string; accessKeyId?: string; secretAccessKey?: string; bucket?: string; filenameTpl?: string; filenameTplScope?: string; customDomain?: string; compressMode?: string; compressLevel?: string; tinifyKey?: string }} AppConfig */
@@ -385,7 +385,7 @@ class UploadManager {
         continue
       }
 
-      const shouldApplyTpl = filenameTplScope === 'all' ? true : IMAGE_RE.test(file.name)
+      const shouldApplyTpl = shouldApplyFilenameTemplate(filenameTplScope, file.name, useOverrideKey)
       if (shouldApplyTpl && isFilenameHashTooLarge(filenameTpl, file.size, MULTIPART_THRESHOLD)) {
         this.#ui.toast(t('filenameHashTooLarge', { name: file.name }), 'error')
         continue

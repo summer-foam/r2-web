@@ -27,3 +27,23 @@ test('identifies only hash templates above the multipart threshold as unsafe', (
   assert.equal(utils.isFilenameHashTooLarge?.('[name].[ext]', threshold + 1, threshold), false)
   assert.equal(utils.isFilenameHashTooLarge?.('[hash:abc].[ext]', threshold + 1, threshold), false)
 })
+
+test('bypasses filename templates when an explicit upload key is provided', () => {
+  const hashTemplate = '[name]-[hash].[ext]'
+  const threshold = 100
+
+  for (const [scope, name] of [
+    ['all', 'archive.bin'],
+    ['images', 'photo.jpg'],
+  ]) {
+    const shouldApply = utils.shouldApplyFilenameTemplate?.(scope, name, true)
+    assert.equal(shouldApply, false)
+    assert.equal(shouldApply && utils.isFilenameHashTooLarge(hashTemplate, threshold + 1, threshold), false)
+  }
+})
+
+test('keeps normal filename template scope behavior without an explicit upload key', () => {
+  assert.equal(utils.shouldApplyFilenameTemplate?.('all', 'archive.bin', false), true)
+  assert.equal(utils.shouldApplyFilenameTemplate?.('images', 'photo.jpg', false), true)
+  assert.equal(utils.shouldApplyFilenameTemplate?.('images', 'archive.bin', false), false)
+})

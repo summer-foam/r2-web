@@ -72,20 +72,24 @@ test('completes with escaped, ordered part XML', async () => {
   assert.match(body, /<PartNumber>1<\/PartNumber><ETag>&quot;a&amp;b&quot;<\/ETag>/)
 })
 
-test('rejects a 200 multipart completion response containing a namespaced XML error', async () => {
-  const { client } = setup([
-    new Response(
-      '<s3:Error xmlns:s3="http://s3.amazonaws.com/doc/2006-03-01/"><s3:Code>InternalError</s3:Code><s3:Message>Unable &amp; unwilling to complete</s3:Message></s3:Error>',
-    ),
-  ])
+for (const [label, xml] of [
+  ['plain', '<Error><Code>InternalError</Code><Message>Unable &amp; unwilling to complete</Message></Error>'],
+  [
+    'namespaced',
+    '<s3:Error xmlns:s3="http://s3.amazonaws.com/doc/2006-03-01/"><s3:Code>InternalError</s3:Code><s3:Message>Unable &amp; unwilling to complete</s3:Message></s3:Error>',
+  ],
+]) {
+  test(`rejects a 200 multipart completion response containing a ${label} XML error`, async () => {
+    const { client } = setup([new Response(xml)])
 
-  await assert.rejects(client.completeMultipartUpload('a.bin', 'id', []), (error) => {
-    assert.equal(error.status, 200)
-    assert.equal(error.code, 'InternalError')
-    assert.equal(error.message, 'Unable & unwilling to complete')
-    return true
+    await assert.rejects(client.completeMultipartUpload('a.bin', 'id', []), (error) => {
+      assert.equal(error.status, 200)
+      assert.equal(error.code, 'InternalError')
+      assert.equal(error.message, 'Unable & unwilling to complete')
+      return true
+    })
   })
-})
+}
 
 test('aborts with DELETE and classifies retryable HTTP responses', async () => {
   const retryable = setup([new Response('', { status: 503 })]).client

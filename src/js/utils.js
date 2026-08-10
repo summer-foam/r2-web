@@ -207,6 +207,11 @@ function isFilenameHashTooLarge(template, size, threshold) {
   return FILENAME_HASH_TOKEN_RE.test(template) && size > threshold
 }
 
+/** @param {string} scope @param {string} name @param {boolean} useOverrideKey */
+function shouldApplyFilenameTemplate(scope, name, useOverrideKey) {
+  return !useOverrideKey && (scope === 'all' || IMAGE_RE.test(name))
+}
+
 /** @param {string} template @param {File} file @returns {Promise<string>} */
 async function applyFilenameTemplate(template, file) {
   if (!template?.trim()) return file.name
@@ -241,5 +246,6 @@ export {
   encodeS3Key,
   computeFileHash,
   isFilenameHashTooLarge,
+  shouldApplyFilenameTemplate,
   applyFilenameTemplate,
 }
