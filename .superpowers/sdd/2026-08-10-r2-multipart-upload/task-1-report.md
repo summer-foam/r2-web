@@ -56,3 +56,66 @@ Additional verification: `git diff --check` completed without whitespace errors.
 
 - `pnpm test` could not be used because the pnpm wrapper stalled; `node --test` is the documented substitution.
 - The scheduler intentionally follows the brief's contract and does not add validation for malformed policy values such as zero or negative `partSize`/`concurrency`.
+
+## Fix round 1: explicit retryability
+
+### Change
+
+- Added a regression test proving an unannotated non-network error is attempted once and is not retried.
+- Changed scheduler retry classification to retry only errors with explicit `retryable === true`; errors without that marker, or with `retryable === false`, now fail immediately. R2 protocol adapters can mark only network, HTTP 408, HTTP 429, and HTTP 5xx failures as retryable.
+- Kept concurrency configurable as ruled: the generic scheduler does not hard-code a ceiling.
+
+### RED evidence
+
+Command:
+
+```text
+node --test test/multipart-uploader.test.js
+```
+
+Output (relevant failure):
+
+```text
+✔ retries a retryable part failure
+✖ does not retry an unannotated non-network failure
+AssertionError: 4 !== 1
+ℹ tests 8
+ℹ pass 7
+ℹ fail 1
+```
+
+This demonstrated that the prior implementation retried the unannotated error through the retry budget.
+
+### GREEN evidence
+
+Focused command:
+
+```text
+node --test test/multipart-uploader.test.js
+```
+
+Output:
+
+```text
+ℹ tests 8
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+```
+
+Full command:
+
+```text
+node --test
+```
+
+Output:
+
+```text
+ℹ tests 8
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+```
+
+`git diff --check` also completed successfully.

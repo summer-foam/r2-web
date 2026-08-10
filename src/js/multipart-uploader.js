@@ -55,7 +55,7 @@ export async function uploadMultipart({
       try {
         return await uploadPart({ uploadId, partNumber, body })
       } catch (/** @type {any} */ error) {
-        if (error?.retryable === false || attempt >= maxRetries) throw error
+        if (error?.retryable !== true || attempt >= maxRetries) throw error
         const delay = retryBaseDelay * 2 ** attempt + random() * retryBaseDelay
         await sleep(delay)
       }

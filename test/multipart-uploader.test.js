@@ -119,6 +119,20 @@ test('retries a retryable part failure with exponential delays', async () => {
   assert.deepEqual(delays, [500, 1000])
 })
 
+test('does not retry an unannotated non-network failure', async () => {
+  let attempts = 0
+  const expected = new Error('programming failure')
+  const options = baseOptions({
+    blob: new Blob([new Uint8Array(5)]),
+    uploadPart: async () => {
+      attempts++
+      throw expected
+    },
+  })
+  await assert.rejects(uploadMultipart(options), (error) => error === expected)
+  assert.equal(attempts, 1)
+})
+
 test('does not retry a non-retryable failure and aborts once', async () => {
   let attempts = 0
   let aborts = 0
