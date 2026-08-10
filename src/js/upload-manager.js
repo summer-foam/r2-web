@@ -492,7 +492,13 @@ class UploadManager {
           compressionStatus = msg
           u.updateStatus(msg)
         })
-        u.updateStatus(t('uploading'))
+        u.updateStatus(
+          t('uploading', {
+            percent: 0,
+            loaded: filesize(0),
+            total: filesize(compressed.size),
+          }),
+        )
         try {
           const result = shouldUseMultipart(compressed.size, MULTIPART_THRESHOLD)
             ? await this.#uploadMultipartFile(u.id, u.key, compressed, u.contentType, u.updateStatus)
@@ -582,7 +588,7 @@ class UploadManager {
         onProgress: ({ loaded, total, percent }) => {
           if (bar) bar.style.width = `${percent}%`
           updateStatus(
-            t('multipartUploading', {
+            t('uploading', {
               percent,
               loaded: filesize(loaded),
               total: filesize(total),
