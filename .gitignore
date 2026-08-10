@@ -4,3 +4,4 @@ issue.md
 /docs/
 .idea
 .codegraph
+.worktrees/
