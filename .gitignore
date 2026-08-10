@@ -2,3 +2,5 @@
 node_modules
 issue.md
 /docs/
+.idea
+.codegraph
