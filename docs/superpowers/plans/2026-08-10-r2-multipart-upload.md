@@ -44,7 +44,7 @@
 
 **Interfaces:**
 - Consumes: a `Blob`, multipart policy values, and injected `createUpload`, `uploadPart`, `completeUpload`, `abortUpload`, `onProgress`, `sleep`, and `random` callbacks.
-- Produces: `uploadMultipart(options): Promise<void>` and `shouldUseMultipart(size, threshold): boolean`.
+- Produces: `uploadMultipart(options): Promise<void>`, `isUploadSizeAllowed(size, maxSize): boolean`, and `shouldUseMultipart(size, threshold): boolean`.
 
 - [ ] **Step 1: Add the test script and write scheduler tests that fail because the module does not exist**
 
@@ -229,6 +229,11 @@ const defaultSleep = (delay) => new Promise((resolve) => setTimeout(resolve, del
 /** @param {number} size @param {number} threshold */
 export function shouldUseMultipart(size, threshold) {
   return size > threshold
+}
+
+/** @param {number} size @param {number} maxSize */
+export function isUploadSizeAllowed(size, maxSize) {
+  return size <= maxSize
 }
 
 /**
@@ -594,25 +599,19 @@ import assert from 'node:assert/strict'
 import {
   MAX_UPLOAD_SIZE,
   MULTIPART_THRESHOLD,
-  MULTIPART_PART_SIZE,
-  MULTIPART_CONCURRENCY,
-  MULTIPART_MAX_RETRIES,
-  MULTIPART_RETRY_BASE_DELAY,
 } from '../src/js/constants.js'
-import { shouldUseMultipart } from '../src/js/multipart-uploader.js'
+import { isUploadSizeAllowed, shouldUseMultipart } from '../src/js/multipart-uploader.js'
 
-test('defines the approved upload policy values', () => {
-  assert.equal(MAX_UPLOAD_SIZE, 5 * 1024 ** 3)
-  assert.equal(MULTIPART_THRESHOLD, 100 * 1024 ** 2)
-  assert.equal(MULTIPART_PART_SIZE, 16 * 1024 ** 2)
-  assert.equal(MULTIPART_CONCURRENCY, 3)
-  assert.equal(MULTIPART_MAX_RETRIES, 3)
-  assert.equal(MULTIPART_RETRY_BASE_DELAY, 500)
+test('accepts exactly 5 GiB and rejects the next byte', () => {
+  const fiveGiB = 5 * 1024 ** 3
+  assert.equal(isUploadSizeAllowed(fiveGiB, MAX_UPLOAD_SIZE), true)
+  assert.equal(isUploadSizeAllowed(fiveGiB + 1, MAX_UPLOAD_SIZE), false)
 })
 
 test('uses multipart only above the threshold', () => {
-  assert.equal(shouldUseMultipart(MULTIPART_THRESHOLD, MULTIPART_THRESHOLD), false)
-  assert.equal(shouldUseMultipart(MULTIPART_THRESHOLD + 1, MULTIPART_THRESHOLD), true)
+  const oneHundredMiB = 100 * 1024 ** 2
+  assert.equal(shouldUseMultipart(oneHundredMiB, MULTIPART_THRESHOLD), false)
+  assert.equal(shouldUseMultipart(oneHundredMiB + 1, MULTIPART_THRESHOLD), true)
 })
 ```
 
@@ -620,7 +619,7 @@ test('uses multipart only above the threshold', () => {
 
 Run: `pnpm test -- test/upload-policy.test.js`
 
-Expected: FAIL because the multipart constants are not exported and `MAX_UPLOAD_SIZE` is still 300 MiB.
+Expected: FAIL because `MULTIPART_THRESHOLD` is not exported and `MAX_UPLOAD_SIZE` still rejects the 5 GiB boundary.
 
 - [ ] **Step 3: Add the exact policy constants**
 
@@ -637,7 +636,7 @@ export const MULTIPART_RETRY_BASE_DELAY = 500
 
 - [ ] **Step 4: Integrate transport selection and progress into `UploadManager`**
 
-Import the new constants plus `shouldUseMultipart` and `uploadMultipart`. Keep the existing pre-compression 5 GiB rejection. After compression, select the transport:
+Import the new constants plus `isUploadSizeAllowed`, `shouldUseMultipart`, and `uploadMultipart`. Replace the size comparison with `isUploadSizeAllowed(file.size, MAX_UPLOAD_SIZE)` so the tested boundary policy controls pre-compression rejection. After compression, select the transport:
 
 ```js
 const result = shouldUseMultipart(compressed.size, MULTIPART_THRESHOLD)
@@ -780,9 +779,9 @@ Expected: all tests PASS with no skipped or cancelled tests.
 
 - [ ] **Step 3: Run JavaScript type checking**
 
-Run: `pnpm exec tsc --noEmit --project tsconfig.json`
+Run: `pnpm exec tsc --noEmit --project tsconfig.json --skipLibCheck`
 
-Expected: exit code 0.
+Expected: exit code 0 for project source. The full baseline without `--skipLibCheck` has pre-existing dependency declaration errors in `@jsquash/*`, `EmscriptenWasm`, and `semver`; this task must not add source diagnostics.
 
 - [ ] **Step 4: Run formatting verification**
 
@@ -801,9 +800,9 @@ rg -n "300 ?MB|MAX_UPLOAD_SIZE|MULTIPART_|multipartEtagMissing|ExposeHeaders" sr
 
 Expected: no whitespace errors, no remaining 300 MB upload guidance, exact policy values, four localized ETag messages, and `ExposeHeaders` present in both READMEs.
 
-- [ ] **Step 6: Perform browser smoke tests with an R2 test bucket**
+- [ ] **Step 6: Prepare the browser smoke-test checklist for the user**
 
-Verify these exact cases without using production-only credentials:
+Do not request or use bucket credentials. Include these exact user-run checks in the final handoff:
 
 1. Upload a file below 100 MiB and confirm one object `PUT` occurs.
 2. Upload a file above 100 MiB and confirm create, multiple part `PUT`s, and complete requests occur.
