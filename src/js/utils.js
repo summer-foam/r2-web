@@ -200,6 +200,13 @@ async function computeFileHash(file) {
     .join('')
 }
 
+const FILENAME_HASH_TOKEN_RE = /\[hash(?::\d+)?\]/
+
+/** @param {string} template @param {number} size @param {number} threshold */
+function isFilenameHashTooLarge(template, size, threshold) {
+  return FILENAME_HASH_TOKEN_RE.test(template) && size > threshold
+}
+
 /** @param {string} template @param {File} file @returns {Promise<string>} */
 async function applyFilenameTemplate(template, file) {
   if (!template?.trim()) return file.name
@@ -207,7 +214,7 @@ async function applyFilenameTemplate(template, file) {
   const originalName = file.name
   const ext = getExtension(originalName)
   const base = getBaseName(originalName)
-  const fileHash = await computeFileHash(file)
+  const fileHash = FILENAME_HASH_TOKEN_RE.test(template) ? await computeFileHash(file) : ''
 
   let result = template
   result = result.replace(/\[name\]/g, base)
@@ -233,5 +240,6 @@ export {
   getMimeType,
   encodeS3Key,
   computeFileHash,
+  isFilenameHashTooLarge,
   applyFilenameTemplate,
 }

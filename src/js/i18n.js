@@ -107,6 +107,7 @@ const I18N = {
     uploadSuccess: '{count} 个文件上传成功',
     uploadPartialFail: '{success} 个成功，{fail} 个没能上传',
     multipartEtagMissing: '无法读取分片 ETag，请在 R2 存储桶 CORS 的 ExposeHeaders 中添加 ETag',
+    filenameHashTooLarge: '文件“{name}”超过 100 MiB，无法使用 [hash] 文件名模板；已跳过该文件',
     fileTooLarge: '文件“{name}”超过 5 GiB 上传上限',
     overwriteTitle: '文件已存在',
     overwriteMsg: '"{name}" 已存在，是否覆盖原文件？',
@@ -361,6 +362,7 @@ const I18N = {
     uploadSuccess: '{count} 個檔案上傳成功',
     uploadPartialFail: '{success} 個成功，{fail} 個沒能上傳',
     multipartEtagMissing: '無法讀取分片 ETag，請在 R2 儲存桶 CORS 的 ExposeHeaders 中加入 ETag',
+    filenameHashTooLarge: '檔案「{name}」超過 100 MiB，無法使用 [hash] 檔名範本；已略過該檔案',
     fileTooLarge: '檔案「{name}」超過 5 GiB 上傳上限',
     overwriteTitle: '檔案已存在',
     overwriteMsg: '「{name}」已存在，是否覆蓋原檔案？',
@@ -617,6 +619,7 @@ const I18N = {
     uploadSuccess: '{count} file(s) uploaded!',
     uploadPartialFail: "{success} uploaded, {fail} didn't make it",
     multipartEtagMissing: 'Cannot read part ETag. Add ETag to ExposeHeaders in the R2 bucket CORS policy.',
+    filenameHashTooLarge: '"{name}" exceeds 100 MiB and cannot use a [hash] filename template; the file was skipped.',
     fileTooLarge: '"{name}" exceeds the 5 GiB upload limit',
     overwriteTitle: 'File Already Exists',
     overwriteMsg: '"{name}" already exists. Overwrite it?',
@@ -879,6 +882,8 @@ const I18N = {
     uploadPartialFail: '{success} 個成功、{fail} 個は失敗しました',
     multipartEtagMissing:
       'パートの ETag を読み取れません。R2 バケットの CORS ポリシーで ExposeHeaders に ETag を追加してください',
+    filenameHashTooLarge:
+      '「{name}」は 100 MiB を超えるため [hash] ファイル名テンプレートを使用できません。このファイルをスキップしました',
     fileTooLarge: '"{name}" は 5 GiB のアップロード上限を超えています',
     overwriteTitle: 'ファイルが既に存在します',
     overwriteMsg: '"{name}" は既に存在します。上書きしますか？',

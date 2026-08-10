@@ -28,9 +28,13 @@ const decodeXml = (value) =>
 
 /** @param {string} xml @param {string} tag */
 const readXmlTag = (xml, tag) => {
-  const match = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))
+  const qualifiedTag = `(?:[A-Za-z_][\\w.-]*:)?${tag}`
+  const match = xml.match(new RegExp(`<${qualifiedTag}\\b[^>]*>([\\s\\S]*?)<\\/${qualifiedTag}\\s*>`, 'i'))
   return decodeXml(match?.[1] ?? '')
 }
+
+/** @param {string} xml @param {string} tag */
+const hasXmlTag = (xml, tag) => new RegExp(`<(?:[A-Za-z_][\\w.-]*:)?${tag}\\b[^>]*>`, 'i').test(xml)
 
 /** @param {Response} response */
 const requestError = (response) =>
@@ -136,6 +140,12 @@ class R2Client {
       body,
     })
     if (!res.ok) throw requestError(res)
+    const responseBody = await res.text()
+    if (hasXmlTag(responseBody, 'Error')) {
+      const code = readXmlTag(responseBody, 'Code') || 'MULTIPART_COMPLETE_ERROR'
+      const message = readXmlTag(responseBody, 'Message') || code
+      throw new R2RequestError(message, { status: res.status, code })
+    }
   }
 
   /** @param {string} key @param {string} uploadId */

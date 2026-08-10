@@ -20,7 +20,14 @@ import { ConfigManager } from './config-manager.js'
 import { FileExplorer } from './file-explorer.js'
 import { R2Client } from './r2-client.js'
 import { UIManager } from './ui-manager.js'
-import { $, applyFilenameTemplate, computeFileHash, extractFileName, getMimeType } from './utils.js'
+import {
+  $,
+  applyFilenameTemplate,
+  computeFileHash,
+  extractFileName,
+  getMimeType,
+  isFilenameHashTooLarge,
+} from './utils.js'
 
 /** @typedef {{ accountId?: string; accessKeyId?: string; secretAccessKey?: string; bucket?: string; filenameTpl?: string; filenameTplScope?: string; customDomain?: string; compressMode?: string; compressLevel?: string; tinifyKey?: string }} AppConfig */
 
@@ -379,6 +386,10 @@ class UploadManager {
       }
 
       const shouldApplyTpl = filenameTplScope === 'all' ? true : IMAGE_RE.test(file.name)
+      if (shouldApplyTpl && isFilenameHashTooLarge(filenameTpl, file.size, MULTIPART_THRESHOLD)) {
+        this.#ui.toast(t('filenameHashTooLarge', { name: file.name }), 'error')
+        continue
+      }
       const processedName = shouldApplyTpl ? await applyFilenameTemplate(filenameTpl, file) : file.name
 
       if (

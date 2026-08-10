@@ -4,8 +4,12 @@ import { uploadMultipart } from '../src/js/multipart-uploader.js'
 
 function deferred() {
   let resolve
-  const promise = new Promise((done) => (resolve = done))
-  return { promise, resolve }
+  let reject
+  const promise = new Promise((done, fail) => {
+    resolve = done
+    reject = fail
+  })
+  return { promise, resolve, reject }
 }
 
 function baseOptions(overrides = {}) {
@@ -167,4 +171,29 @@ test('aborts completion failure and preserves it when abort also fails', async (
     },
   })
   await assert.rejects(uploadMultipart(options), (error) => error === expected)
+})
+
+test('preserves the first observed failure when in-flight parts fail together', async () => {
+  const gates = [deferred(), deferred()]
+  const started = deferred()
+  let startedCount = 0
+  const firstFailure = new Error('first failure')
+  const secondFailure = new Error('second failure')
+  const options = baseOptions({
+    blob: new Blob([new Uint8Array(20)]),
+    concurrency: 2,
+    uploadPart: ({ partNumber }) => {
+      startedCount++
+      if (startedCount === 2) started.resolve()
+      return gates[partNumber - 1].promise
+    },
+  })
+
+  const uploading = uploadMultipart(options)
+  const rejection = assert.rejects(uploading, (error) => error === firstFailure)
+  await started.promise
+  gates[0].reject(firstFailure)
+  await Promise.resolve()
+  gates[1].reject(secondFailure)
+  await rejection
 })

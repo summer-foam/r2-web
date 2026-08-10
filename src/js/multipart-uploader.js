@@ -75,7 +75,7 @@ export async function uploadMultipart({
         loaded += body.size
         onProgress({ loaded, total: blob.size, percent: Math.round((loaded / blob.size) * 100) })
       } catch (/** @type {any} */ error) {
-        failure = error
+        failure ??= error
       }
     }
   }

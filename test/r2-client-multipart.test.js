@@ -57,7 +57,11 @@ test('marks a missing ETag as a non-retryable CORS configuration error', async (
 })
 
 test('completes with escaped, ordered part XML', async () => {
-  const { client, requests } = setup([new Response('')])
+  const { client, requests } = setup([
+    new Response(
+      '<CompleteMultipartUploadResult><Location>https://example.com/a.bin</Location><Bucket>bucket</Bucket><Key>a.bin</Key><ETag>"complete-etag"</ETag></CompleteMultipartUploadResult>',
+    ),
+  ])
   await client.completeMultipartUpload('a.bin', 'id', [
     { partNumber: 1, etag: '"a&b"' },
     { partNumber: 2, etag: '"etag-2"' },
@@ -66,6 +70,21 @@ test('completes with escaped, ordered part XML', async () => {
   assert.equal(new URL(requests[0].url).searchParams.get('uploadId'), 'id')
   const body = await requests[0].text()
   assert.match(body, /<PartNumber>1<\/PartNumber><ETag>&quot;a&amp;b&quot;<\/ETag>/)
+})
+
+test('rejects a 200 multipart completion response containing a namespaced XML error', async () => {
+  const { client } = setup([
+    new Response(
+      '<s3:Error xmlns:s3="http://s3.amazonaws.com/doc/2006-03-01/"><s3:Code>InternalError</s3:Code><s3:Message>Unable &amp; unwilling to complete</s3:Message></s3:Error>',
+    ),
+  ])
+
+  await assert.rejects(client.completeMultipartUpload('a.bin', 'id', []), (error) => {
+    assert.equal(error.status, 200)
+    assert.equal(error.code, 'InternalError')
+    assert.equal(error.message, 'Unable & unwilling to complete')
+    return true
+  })
 })
 
 test('aborts with DELETE and classifies retryable HTTP responses', async () => {
