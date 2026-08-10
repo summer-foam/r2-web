@@ -1,6 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { R2Client } from '../src/js/r2-client.js'
+
+globalThis.localStorage = {
+  getItem: () => null,
+  setItem: () => {},
+}
+
+const { R2Client } = await import('../src/js/r2-client.js')
 
 function setup(responses) {
   const requests = []
