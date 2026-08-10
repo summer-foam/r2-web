@@ -359,7 +359,9 @@ function setup(responses) {
     clientFactory: () => signer,
     fetchImpl: async (request) => {
       requests.push(request)
-      return responses.shift()
+      const response = responses.shift()
+      if (response instanceof Error) throw response
+      return response
     },
   })
   client.init({
@@ -417,6 +419,17 @@ test('aborts with DELETE and classifies retryable HTTP responses', async () => {
   const rejected = setup([new Response('', { status: 403 })]).client
   await assert.rejects(rejected.abortMultipartUpload('a.bin', 'id'), (error) => error.retryable === false)
 })
+
+test('marks fetch network failures as retryable', async () => {
+  const networkError = new TypeError('fetch failed')
+  const { client } = setup([networkError])
+  await assert.rejects(client.createMultipartUpload('a.bin', 'application/octet-stream'), (error) => {
+    assert.equal(error.code, 'NETWORK_ERROR')
+    assert.equal(error.retryable, true)
+    assert.equal(error.cause, networkError)
+    return true
+  })
+})
 ```
 
 - [ ] **Step 2: Run the protocol tests and verify the expected red state**
@@ -433,10 +446,10 @@ Add the following typed helpers before `R2Client`:
 class R2RequestError extends Error {
   /**
    * @param {string} message
-   * @param {{status?: number, code?: string, retryable?: boolean}} [options]
+   * @param {{status?: number, code?: string, retryable?: boolean, cause?: unknown}} [options]
    */
-  constructor(message, { status = 0, code = '', retryable = false } = {}) {
-    super(message)
+  constructor(message, { status = 0, code = '', retryable = false, cause } = {}) {
+    super(message, { cause })
     this.status = status
     this.code = code
     this.retryable = retryable
@@ -493,7 +506,15 @@ this.#client = this.#clientFactory({
 /** @param {string | URL} url @param {RequestInit} init */
 async #signedFetchOnce(url, init) {
   const request = await /** @type {AwsClient} */ (this.#client).sign(url, init)
-  return this.#fetchImpl(request)
+  try {
+    return await this.#fetchImpl(request)
+  } catch (cause) {
+    throw new R2RequestError('Network request failed', {
+      code: 'NETWORK_ERROR',
+      retryable: true,
+      cause,
+    })
+  }
 }
 ```
 
