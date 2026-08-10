@@ -49,7 +49,7 @@ Other services can simply deploy the `src` directory. After deployment, remember
 
 **Where R2 Web falls short:**
 
-- Very large file uploads (>300 MB) — use rclone or similar tools instead
+- Browser uploads support files up to 5 GiB and automatically use multipart upload above 100 MiB
 - Complex permission management — use the official Cloudflare console
 - Automated scripts — use the official SDK or CLI
 - API integration — no backend; use the official SDK or call the R2 API directly
@@ -77,14 +77,14 @@ Other services can simply deploy the `src` directory. After deployment, remember
 
 ## Feature Overview
 
-| Category            | Details                                                                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Category            | Details                                                                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **File Management** | Directory browsing, paginated loading, lazy thumbnail loading; Sort by name / date / size; Rename, move, copy, delete (recursive); Batch operations with multi-select |
-| **File Upload**     | Drag / paste / picker upload; Filename templates (hash, date, UUID placeholders); Auto image compression before upload (WebAssembly) |
-| **File Preview**    | Image preview (common formats); Inline video / audio player; Text file preview with syntax highlighting                              |
-| **Link Copy**       | Direct URL, Markdown, HTML, pre-signed URL                                                                                               |
-| **Personalization** | Simplified / Traditional Chinese, English, Japanese; Dark mode (follows system); Config share link / QR code                         |
-| **PWA**             | Install to desktop, native-like experience                                                                                               |
+| **File Upload**     | Drag / paste / picker upload; Filename templates (hash, date, UUID placeholders); Auto image compression before upload (WebAssembly)                                  |
+| **File Preview**    | Image preview (common formats); Inline video / audio player; Text file preview with syntax highlighting                                                               |
+| **Link Copy**       | Direct URL, Markdown, HTML, pre-signed URL                                                                                                                            |
+| **Personalization** | Simplified / Traditional Chinese, English, Japanese; Dark mode (follows system); Config share link / QR code                                                          |
+| **PWA**             | Install to desktop, native-like experience                                                                                                                            |
 
 ## Quick Start
 
@@ -98,7 +98,7 @@ In the Cloudflare dashboard, go to R2 → Bucket → Settings → CORS Policy an
     "AllowedOrigins": ["https://r2.viki.moe"],
     "AllowedMethods": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "AllowedHeaders": ["*"],
-    "ExposeHeaders": ["etag"],
+    "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 86400
   }
 ]
@@ -106,6 +106,9 @@ In the Cloudflare dashboard, go to R2 → Bucket → Settings → CORS Policy an
 
 > [!TIP]
 > Self-hosting? Just replace `AllowedOrigins` with your own domain.
+
+> [!IMPORTANT]
+> Multipart completion requires browser JavaScript to read the `ETag` response header, so CORS `ExposeHeaders` must include `ETag`.
 
 ### 2. Enter Credentials
 
@@ -194,7 +197,7 @@ A: It includes your Access Key ID, Secret Access Key, bucket name, and other sen
 
 **Q: Why is my upload failing?**
 
-A: Check that your CORS policy is correct, your credentials are valid, and that the file is under 300 MB (use rclone for large files).
+A: Check the CORS policy, credentials, and file size. Browser uploads support files up to 5 GiB and automatically use multipart upload above 100 MiB. If a large upload reports that ETag cannot be read, ensure `ExposeHeaders` contains `ETag`.
 
 ## Roadmap
 
