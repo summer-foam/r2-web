@@ -99,7 +99,10 @@ test('orders completion metadata even when parts finish out of order', async () 
   gates[0].resolve()
   gates[1].resolve()
   await uploading
-  assert.deepEqual(received.map((part) => part.partNumber), [1, 2, 3])
+  assert.deepEqual(
+    received.map((part) => part.partNumber),
+    [1, 2, 3],
+  )
 })
 
 test('retries a retryable part failure with exponential delays', async () => {
