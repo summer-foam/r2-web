@@ -4,8 +4,18 @@ import { encode as encodeWebp } from '@jsquash/webp'
 import { encode as encodeAvif } from '@jsquash/avif'
 import dayjs from 'dayjs'
 import { filesize } from 'filesize'
-import { COMPRESSIBLE_IMAGE_RE, IMAGE_RE, MAX_UPLOAD_SIZE } from './constants.js'
+import {
+  COMPRESSIBLE_IMAGE_RE,
+  IMAGE_RE,
+  MAX_UPLOAD_SIZE,
+  MULTIPART_CONCURRENCY,
+  MULTIPART_MAX_RETRIES,
+  MULTIPART_PART_SIZE,
+  MULTIPART_RETRY_BASE_DELAY,
+  MULTIPART_THRESHOLD,
+} from './constants.js'
 import { t } from './i18n.js'
+import { isUploadSizeAllowed, shouldUseMultipart, uploadMultipart } from './multipart-uploader.js'
 import { ConfigManager } from './config-manager.js'
 import { FileExplorer } from './file-explorer.js'
 import { R2Client } from './r2-client.js'
@@ -363,7 +373,7 @@ class UploadManager {
     for (let i = 0; i < files.length; i++) {
       let file = files[i]
 
-      if (file.size > MAX_UPLOAD_SIZE) {
+      if (!isUploadSizeAllowed(file.size, MAX_UPLOAD_SIZE)) {
         this.#ui.toast(t('fileTooLarge', { name: file.name }), 'error')
         continue
       }
@@ -473,12 +483,18 @@ class UploadManager {
         })
         u.updateStatus(t('uploading'))
         try {
-          const result = await this.#uploadSingleFile(u.id, u.key, compressed, u.contentType)
+          const result = shouldUseMultipart(compressed.size, MULTIPART_THRESHOLD)
+            ? await this.#uploadMultipartFile(u.id, u.key, compressed, u.contentType, u.updateStatus)
+            : await this.#uploadSingleFile(u.id, u.key, compressed, u.contentType)
           u.updateStatus(compressionStatus || filesize(compressed.size))
           return result
-        } catch (e) {
-          u.updateStatus('')
-          throw e
+        } catch (/** @type {any} */ error) {
+          if (error?.code === 'MULTIPART_ETAG_MISSING') {
+            u.updateStatus(t('multipartEtagMissing'))
+          } else {
+            u.updateStatus('')
+          }
+          throw error
         } finally {
           completed++
           title.textContent = `${t('uploadProgress')} ${completed}/${uploads.length}`
@@ -490,8 +506,13 @@ class UploadManager {
     const success = results.filter((r) => r.status === 'fulfilled').length
     const fail = results.filter((r) => r.status === 'rejected').length
 
+    const etagMissing = results.some(
+      (result) => result.status === 'rejected' && result.reason?.code === 'MULTIPART_ETAG_MISSING',
+    )
     if (fail === 0) {
       this.#ui.toast(t('uploadSuccess', { count: success }), 'success')
+    } else if (etagMissing) {
+      this.#ui.toast(t('multipartEtagMissing'), 'error')
     } else {
       this.#ui.toast(t('uploadPartialFail', { success, fail }), 'error')
     }
@@ -530,6 +551,41 @@ class UploadManager {
     if (bar) {
       bar.classList.add('done')
       bar.style.width = '100%'
+    }
+  }
+
+  /** @param {string} id @param {string} key @param {File} file @param {string} contentType @param {(msg: string) => void} updateStatus */
+  async #uploadMultipartFile(id, key, file, contentType, updateStatus) {
+    const bar = $(`#${id}-bar`)
+    try {
+      await uploadMultipart({
+        blob: file,
+        partSize: MULTIPART_PART_SIZE,
+        concurrency: MULTIPART_CONCURRENCY,
+        maxRetries: MULTIPART_MAX_RETRIES,
+        retryBaseDelay: MULTIPART_RETRY_BASE_DELAY,
+        createUpload: () => this.#r2.createMultipartUpload(key, contentType),
+        uploadPart: ({ uploadId, partNumber, body }) => this.#r2.uploadPart(key, uploadId, partNumber, body),
+        completeUpload: ({ uploadId, parts }) => this.#r2.completeMultipartUpload(key, uploadId, parts),
+        abortUpload: ({ uploadId }) => this.#r2.abortMultipartUpload(key, uploadId),
+        onProgress: ({ loaded, total, percent }) => {
+          if (bar) bar.style.width = `${percent}%`
+          updateStatus(
+            t('multipartUploading', {
+              percent,
+              loaded: filesize(loaded),
+              total: filesize(total),
+            }),
+          )
+        },
+      })
+      if (bar) {
+        bar.classList.add('done')
+        bar.style.width = '100%'
+      }
+    } catch (error) {
+      if (bar) bar.classList.add('error')
+      throw error
     }
   }
 }
